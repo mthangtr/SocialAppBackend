@@ -1,0 +1,12 @@
+# Dependency directories
+node_modules/
+
+# Optional: ignore environment files
+.env
+
+# Optional: ignore log files
+*.log
+
+# Optional: ignore other generated files
+dist/
+build/
