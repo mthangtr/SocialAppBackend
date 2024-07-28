@@ -22,7 +22,14 @@ export async function createPostHandler(req: CustomRequest, res: Response) {
 
   try {
     const post = await createPost({ user: userId, content, media });
-    res.status(201).send(post);
+    const updatedPost = post.media.map((filePath) => {
+      if (!filePath.startsWith("http://") && !filePath.startsWith("https://")) {
+        const fileName = path.basename(filePath);
+        return `http://localhost:8080/images/${fileName}`;
+      }
+      return filePath;
+    });
+    res.status(201).send(updatedPost);
   } catch (error) {
     res.status(500).send({ error: error.message });
   }
@@ -47,7 +54,6 @@ export const getPostsHandler = async (req: Request, res: Response) => {
       });
       return post;
     });
-
     return res.status(200).json(updatedPosts);
   } catch (error) {
     console.log("Error in getPostsHandler: ", error);

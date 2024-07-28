@@ -78,13 +78,13 @@ export const reactToPost = async (
 
   if (existingReactionIndex > -1) {
     if (reaction === "none") {
-      post.reactions.splice(existingReactionIndex, 1); // Nếu reaction là "none", hủy bỏ reaction
+      post.reactions.splice(existingReactionIndex, 1);
     } else {
-      post.reactions[existingReactionIndex].type = reaction; // Nếu không, cập nhật loại reaction mới
+      post.reactions[existingReactionIndex].type = reaction;
     }
   } else {
     if (reaction !== "none") {
-      post.reactions.push({ user: userId, type: reaction }); // Nếu người dùng chưa thả react, thêm react mới
+      post.reactions.push({ user: userId, type: reaction });
     }
   }
 

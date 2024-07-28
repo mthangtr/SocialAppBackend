@@ -1,6 +1,6 @@
 import express from "express";
 
-import { getUserByEmail, createUser } from "../db/users";
+import { getUserByEmail, createUser, getUserBySessionToken } from "../db/users";
 import { random, authentication } from "../helpers";
 
 const usernameGenerator = (email: string) => email.split("@")[0];
@@ -32,10 +32,13 @@ export const login = async (req: express.Request, res: express.Response) => {
 
     await user.save();
 
+    const maxAge = 24 * 60 * 60 * 1000;
+
     res.cookie("sessionToken", user.authentication.sessionToken, {
       httpOnly: true,
       secure: false,
       sameSite: "strict",
+      maxAge,
     });
 
     return res.status(200).json(user).end();
@@ -82,6 +85,33 @@ export const logout = async (req: express.Request, res: express.Response) => {
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Error on logout", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const checkSession = async (
+  req: express.Request,
+  res: express.Response
+) => {
+  try {
+    const { sessionToken } = req.body;
+
+    const token =
+      typeof sessionToken === "object" ? sessionToken.value : sessionToken;
+
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await getUserBySessionToken(token);
+
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    return res.status(200).json(user).end();
+  } catch (error) {
+    console.error("Error on checkSession", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
