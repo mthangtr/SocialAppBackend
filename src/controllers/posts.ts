@@ -22,14 +22,14 @@ export async function createPostHandler(req: CustomRequest, res: Response) {
 
   try {
     const post = await createPost({ user: userId, content, media });
-    const updatedPost = post.media.map((filePath) => {
+    post.media = post.media.map((filePath) => {
       if (!filePath.startsWith("http://") && !filePath.startsWith("https://")) {
         const fileName = path.basename(filePath);
         return `http://localhost:8080/images/${fileName}`;
       }
       return filePath;
     });
-    res.status(201).send(updatedPost);
+    res.status(201).send(post);
   } catch (error) {
     res.status(500).send({ error: error.message });
   }

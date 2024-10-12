@@ -32,7 +32,11 @@ export const Post = mongoose.model("Post", PostSchema);
 
 export const createPost = async (values: Record<string, any>) => {
   const post = new Post(values);
-  return post.save().then((post) => post.toObject());
+  await post.save();
+  return Post.findById(post._id)
+    .populate("user")
+    .populate("reactions.user")
+    .exec();
 };
 
 export const getPosts = async (page: number, limit: number) => {
