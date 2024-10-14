@@ -93,5 +93,8 @@ export const reactToPost = async (
   }
 
   await post.save();
-  return post;
+  return Post.findById(post._id)
+    .populate("user")
+    .populate("reactions.user")
+    .exec();
 };
