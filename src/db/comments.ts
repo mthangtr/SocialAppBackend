@@ -55,7 +55,21 @@ export const countCommentsByPostId = async (postId: string) => {
 export const addComment = async (values: Record<string, any>) => {
   const comment = new Comment(values);
   await comment.save();
-  return Comment.findById(comment._id).populate("user");
+
+  // If it's a reply (has a parent), update the parent's children array
+  if (values.parent) {
+    await Comment.findByIdAndUpdate(values.parent, {
+      $push: { children: comment._id },
+    });
+  }
+
+  // Return the populated comment
+  return Comment.findById(comment._id)
+    .populate("user") // Populate user data
+    .populate({
+      path: "parent",
+      populate: { path: "user" }, // Populate parent comment's user
+    });
 };
 
 export const deleteComment = async (id: string) => {

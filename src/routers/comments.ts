@@ -5,6 +5,7 @@ import {
   createComment,
   editComment,
   removeComment,
+  getTotalCommentsByPost,
 } from "../controllers/comments";
 import { isAuthenticated } from "../middlewares";
 
@@ -14,4 +15,5 @@ export default (router: express.Router) => {
   router.post("/comments", isAuthenticated, createComment);
   router.put("/comments/:id", isAuthenticated, editComment);
   router.delete("/comments/:id", isAuthenticated, removeComment);
+  router.get("/comments/:postId/total", getTotalCommentsByPost);
 };

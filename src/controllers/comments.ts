@@ -36,6 +36,15 @@ export const getOnly2CommentsByPost = async (req: Request, res: Response) => {
   }
 };
 
+export const getTotalCommentsByPost = async (req: Request, res: Response) => {
+  try {
+    const totalComments = await countCommentsByPostId(req.params.postId);
+    res.json({ totalComments });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const createComment = async (req: Request, res: Response) => {
   const { user, post, content, parent } = req.body;
 

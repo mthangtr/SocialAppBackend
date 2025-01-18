@@ -1,5 +1,6 @@
 # Dependency directories
 node_modules/
+sources/
 
 # Optional: ignore environment files
 .env
