@@ -78,6 +78,7 @@ export const addComment = async (values: Record<string, any>) => {
 };
 
 export const deleteComment = async (id: string) => {
+  await Comment.deleteMany({ parent: id });
   return Comment.findByIdAndDelete(id);
 };
 
@@ -85,7 +86,41 @@ export const updateComment = async (
   id: string,
   values: Record<string, any>
 ) => {
-  return Comment.findByIdAndUpdate(id, values, { new: true });
+  return Comment.findByIdAndUpdate(id, values, { new: true })
+    .populate("user")
+    .exec();
+};
+
+export const reactToComment = async (
+  commentId: string,
+  userId: string,
+  reaction: string
+) => {
+  const comment = await Comment.findById(commentId);
+  if (!comment) throw new Error("Comment not found");
+
+  const existingReactionIndex = comment.reactions.findIndex((r) =>
+    r.user.equals(userId)
+  );
+
+  if (existingReactionIndex > -1) {
+    if (reaction === "none") {
+      comment.reactions.splice(existingReactionIndex, 1);
+    } else {
+      comment.reactions[existingReactionIndex].type = reaction;
+    }
+  } else {
+    if (reaction !== "none") {
+      comment.reactions.push({ user: userId, type: reaction });
+    }
+  }
+
+  await comment.save();
+
+  return Comment.findById(commentId)
+    .populate("user")
+    .populate("reactions.user")
+    .exec();
 };
 
 export const Comment = mongoose.model("Comment", CommentSchema);

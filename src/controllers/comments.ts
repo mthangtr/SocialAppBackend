@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { get } from "lodash";
+import { exec } from "child_process";
 import {
   addComment,
   getCommentsByPostId,
@@ -8,6 +9,7 @@ import {
   countCommentsByPostId,
   updateComment,
   deleteComment,
+  reactToComment,
 } from "../db/comments";
 
 export const getCommentsByPost = async (req: Request, res: Response) => {
@@ -101,4 +103,21 @@ export const removeComment = (req: Request, res: Response) => {
       res.status(200).json({ message: "Comment deleted successfully." });
     })
     .catch((err) => res.status(500).json({ error: err.message }));
+};
+
+export const reactToCommentHandler = async (req: Request, res: Response) => {
+  const { commentId } = req.params;
+  const userId = get(req, "user._id");
+  const reaction = get(req, "reaction");
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const comment = await reactToComment(commentId, userId, reaction);
+    res.json(comment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
