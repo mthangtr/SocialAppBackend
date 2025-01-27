@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
+import { get } from "lodash";
 import {
   addComment,
   getCommentsByPostId,
-  getOnly2CommentsByPostId,
+  getRepliesByCommentId,
+  countRepliesByCommentId,
   countCommentsByPostId,
   updateComment,
   deleteComment,
@@ -23,16 +25,22 @@ export const getCommentsByPost = async (req: Request, res: Response) => {
   }
 };
 
-export const getOnly2CommentsByPost = async (req: Request, res: Response) => {
+export const getRepliesByComment = async (req: Request, res: Response) => {
   try {
-    const comments = await getOnly2CommentsByPostId(req.params.postId);
-    const totalComments = await countCommentsByPostId(req.params.postId);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = 2;
+    const replies = await getRepliesByCommentId(
+      req.params.commentId,
+      page,
+      limit
+    );
+    const totalReplies = await countRepliesByCommentId(req.params.commentId);
 
-    const hasMore2cmts = totalComments > 2;
+    const hasMoreReplies = totalReplies > page * limit;
 
-    res.json({ comments, hasMore2cmts });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.json({ replies, hasMoreReplies });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 

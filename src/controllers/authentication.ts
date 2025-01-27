@@ -7,7 +7,7 @@ const usernameGenerator = (email: string) => email.split("@")[0];
 
 export const login = async (req: express.Request, res: express.Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, remember } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: "Missing required fields" });

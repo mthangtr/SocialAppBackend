@@ -1,3 +1,4 @@
+import { exec } from "child_process";
 import mongoose from "mongoose";
 
 const ReactionSchema = new mongoose.Schema(
@@ -10,16 +11,16 @@ const ReactionSchema = new mongoose.Schema(
 
 const CommentSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Author of the comment
-    post: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true }, // Associated post
-    content: { type: String, required: true }, // Content of the comment
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    post: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true },
+    content: { type: String, required: true },
     reactions: [ReactionSchema],
     parent: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Comment",
       default: null,
-    }, // Reference to parent comment
-    children: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }], // References to child comments
+    },
+    children: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],
   },
   { timestamps: true }
 );
@@ -29,23 +30,29 @@ export const getCommentsByPostId = async (
   page: number,
   limit: number
 ) => {
-  const cmt = Comment.find({ post: postId })
+  return Comment.find({ post: postId, parent: null })
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
     .populate("user")
     .exec();
-
-  console.log("cmt: ", cmt);
-  return cmt;
 };
 
-export const getOnly2CommentsByPostId = async (postId: string) => {
-  return Comment.find({ post: postId })
-    .sort({ createdAt: -1 })
-    .limit(2)
+export const getRepliesByCommentId = async (
+  commentId: string,
+  page: number,
+  limit: number
+) => {
+  return Comment.find({ parent: commentId })
+    .sort({ createdAt: 1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
     .populate("user")
     .exec();
+};
+
+export const countRepliesByCommentId = async (commentId: string) => {
+  return Comment.countDocuments({ parent: commentId });
 };
 
 export const countCommentsByPostId = async (postId: string) => {
@@ -56,19 +63,17 @@ export const addComment = async (values: Record<string, any>) => {
   const comment = new Comment(values);
   await comment.save();
 
-  // If it's a reply (has a parent), update the parent's children array
   if (values.parent) {
     await Comment.findByIdAndUpdate(values.parent, {
       $push: { children: comment._id },
     });
   }
 
-  // Return the populated comment
   return Comment.findById(comment._id)
-    .populate("user") // Populate user data
+    .populate("user")
     .populate({
       path: "parent",
-      populate: { path: "user" }, // Populate parent comment's user
+      populate: { path: "user" },
     });
 };
 
