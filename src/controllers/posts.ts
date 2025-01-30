@@ -9,11 +9,7 @@ import {
   reactToPost,
 } from "../db/posts";
 import path from "path";
-
-interface CustomRequest extends Request {
-  identity: any;
-  files: Express.Multer.File[];
-}
+import { CustomRequest } from "../types/typings";
 
 export async function createPostHandler(req: CustomRequest, res: Response) {
   const { content } = req.body;

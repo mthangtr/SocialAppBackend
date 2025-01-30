@@ -10,3 +10,8 @@ declare global {
     }
   }
 }
+
+export interface CustomRequest extends Request {
+  identity: any;
+  files: Express.Multer.File[];
+}

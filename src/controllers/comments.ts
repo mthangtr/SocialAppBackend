@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import { get } from "lodash";
-import { exec } from "child_process";
+import { CustomRequest } from "../types/typings";
 import {
   addComment,
   getCommentsByPostId,
@@ -81,8 +80,7 @@ export const editComment = (req: Request, res: Response) => {
       .status(400)
       .json({ error: "Content is required for updating a comment." });
   }
-
-  updateComment(id, { content })
+  updateComment(id, { content, updatedAt: new Date() })
     .then((updatedComment) => {
       if (!updatedComment) {
         return res.status(404).json({ error: "Comment not found." });
@@ -106,18 +104,27 @@ export const removeComment = (req: Request, res: Response) => {
 };
 
 export const reactToCommentHandler = async (req: Request, res: Response) => {
-  const { commentId } = req.params;
-  const userId = get(req, "user._id");
-  const reaction = get(req, "reaction");
-
-  if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
   try {
-    const comment = await reactToComment(commentId, userId, reaction);
-    res.json(comment);
+    const { commentId } = req.params;
+
+    // Convert the "req" to your custom type that has "identity"
+    const customReq = req as CustomRequest;
+
+    // Now read user ID from customReq.identity
+    const userId = customReq.identity?._id;
+    const { reaction } = req.body; // destructure from body
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const updatedComment = await reactToComment(
+      commentId,
+      userId.toString(),
+      reaction
+    );
+    return res.json(updatedComment);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: (error as Error).message });
   }
 };

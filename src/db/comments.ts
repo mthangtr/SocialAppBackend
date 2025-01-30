@@ -14,6 +14,7 @@ const CommentSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     post: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true },
     content: { type: String, required: true },
+    updatedAt: { type: Date, default: Date.now },
     reactions: [ReactionSchema],
     parent: {
       type: mongoose.Schema.Types.ObjectId,
@@ -22,7 +23,12 @@ const CommentSchema = new mongoose.Schema(
     },
     children: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],
   },
-  { timestamps: true }
+  {
+    timestamps: {
+      createdAt: true,
+      updatedAt: false,
+    },
+  }
 );
 
 export const getCommentsByPostId = async (
@@ -35,6 +41,7 @@ export const getCommentsByPostId = async (
     .skip((page - 1) * limit)
     .limit(limit)
     .populate("user")
+    .populate("reactions.user")
     .exec();
 };
 
@@ -48,6 +55,7 @@ export const getRepliesByCommentId = async (
     .skip((page - 1) * limit)
     .limit(limit)
     .populate("user")
+    .populate("reactions.user")
     .exec();
 };
 
