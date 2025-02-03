@@ -87,16 +87,14 @@ export const addComment = async (values: Record<string, any>) => {
 
 export const deleteComment = async (id: string) => {
   await Comment.deleteMany({ parent: id });
-  return Comment.findByIdAndDelete(id);
+  return Comment.findByIdAndDelete(id).populate("user");
 };
 
 export const updateComment = async (
   id: string,
   values: Record<string, any>
 ) => {
-  return Comment.findByIdAndUpdate(id, values, { new: true })
-    .populate("user")
-    .exec();
+  return Comment.findByIdAndUpdate(id, values, { new: true }).populate("user");
 };
 
 export const reactToComment = async (

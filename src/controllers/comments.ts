@@ -90,17 +90,17 @@ export const editComment = (req: Request, res: Response) => {
     .catch((err) => res.status(500).json({ error: err.message }));
 };
 
-export const removeComment = (req: Request, res: Response) => {
+export const removeComment = async (req: Request, res: Response) => {
   const { id } = req.params;
-
-  deleteComment(id)
-    .then((deletedComment) => {
-      if (!deletedComment) {
-        return res.status(404).json({ error: "Comment not found." });
-      }
-      res.status(200).json({ message: "Comment deleted successfully." });
-    })
-    .catch((err) => res.status(500).json({ error: err.message }));
+  try {
+    const removedComment = await deleteComment(id);
+    if (!removedComment) {
+      return res.status(404).json({ error: "Comment not found." });
+    }
+    res.status(200).json(removedComment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 export const reactToCommentHandler = async (req: Request, res: Response) => {
