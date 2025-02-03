@@ -7,6 +7,9 @@ import {
   updatePost,
   getPostsByUserId,
   reactToPost,
+  setAsFriendsOnly,
+  setAsPrivate,
+  setAsPublic,
 } from "../db/posts";
 import path from "path";
 import { CustomRequest } from "../types/typings";
@@ -129,5 +132,28 @@ export const reactToPostHandler = async (req: Request, res: Response) => {
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const setPrivacyHandler = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    const { privacy } = req.body;
+    switch (privacy) {
+      case "public":
+        await setAsPublic(postId);
+        break;
+      case "private":
+        await setAsPrivate(postId);
+        break;
+      case "friends":
+        await setAsFriendsOnly(postId);
+        break;
+      default:
+        return res.status(400).json({ error: "Invalid privacy setting" });
+    }
+    return res.status(200).json({ message: "Privacy setting updated" });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
   }
 };

@@ -7,6 +7,7 @@ import {
   getPostsByUserIdHandler,
   serveImage,
   reactToPostHandler,
+  setPrivacyHandler,
 } from "../controllers/posts";
 import { isAuthenticated, isOwner, upload } from "../middlewares";
 
@@ -19,8 +20,19 @@ export default (router: express.Router) => {
   );
   router.get("/posts", isAuthenticated, getPostsHandler);
   router.get("/posts/user/:userId", getPostsByUserIdHandler);
-  router.delete("/posts/:id", isAuthenticated, isOwner, deletePostHandler);
-  router.put("/posts/:id", isAuthenticated, isOwner, updatePostHandler);
+  router.delete(
+    "/posts/:userId/:id",
+    isAuthenticated,
+    isOwner,
+    deletePostHandler
+  );
+  router.put("/posts/:userId/:id", isAuthenticated, isOwner, updatePostHandler);
   router.get("/images/:filename", serveImage);
   router.post("/posts/:id/react", isAuthenticated, reactToPostHandler);
+  router.patch(
+    "/posts/:userId/:id/privacy",
+    isAuthenticated,
+    isOwner,
+    setPrivacyHandler
+  );
 };

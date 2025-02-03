@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import express from "express";
 import bodyParser from "body-parser";
+import { Comment } from "./comments";
 
 const app = express();
 
@@ -14,29 +15,23 @@ const ReactionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const PostSchema = new mongoose.Schema(
-  {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    content: { type: String, required: true },
-    media: [{ type: String }],
-    reactions: [ReactionSchema],
-    comments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],
-    privacy: { type: String, default: "public" },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
-  },
-  { timestamps: true }
-);
+const PostSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  content: { type: String, required: true },
+  media: [{ type: String }],
+  reactions: [ReactionSchema],
+  comments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],
+  privacy: { type: String, default: "public" },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
 
 export const Post = mongoose.model("Post", PostSchema);
 
 export const createPost = async (values: Record<string, any>) => {
   const post = new Post(values);
   await post.save();
-  return Post.findById(post._id)
-    .populate("user")
-    .populate("reactions.user")
-    .exec();
+  return Post.findById(post._id).populate("user").populate("reactions.user");
 };
 
 export const getPosts = async (page: number, limit: number) => {
@@ -52,9 +47,14 @@ export const getPosts = async (page: number, limit: number) => {
 
 export const getPostById = async (id: string) =>
   Post.findById(id).populate("user").populate("reactions.user").exec();
-export const deletePost = async (id: string) => Post.findByIdAndDelete(id);
-export const updatePost = async (id: string, values: Record<string, any>) =>
-  Post.findByIdAndUpdate(id, values, { new: true });
+export const deletePost = async (id: string) => {
+  const post = await Post.findByIdAndDelete(id);
+  await Comment.deleteMany({ post: id });
+  return post;
+};
+export const updatePost = async (id: string, values: Record<string, any>) => {
+  await Post.findByIdAndUpdate(id, values);
+};
 
 export const getPostsByUserId = async (userId: string): Promise<any> => {
   if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -97,4 +97,16 @@ export const reactToPost = async (
     .populate("user")
     .populate("reactions.user")
     .exec();
+};
+
+export const setAsPrivate = async (postId: string) => {
+  return Post.findByIdAndUpdate(postId, { privacy: "private" }, { new: true });
+};
+
+export const setAsPublic = async (postId: string) => {
+  return Post.findByIdAndUpdate(postId, { privacy: "public" }, { new: true });
+};
+
+export const setAsFriendsOnly = async (postId: string) => {
+  return Post.findByIdAndUpdate(postId, { privacy: "friends" }, { new: true });
 };
