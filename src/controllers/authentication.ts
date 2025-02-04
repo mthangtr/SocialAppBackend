@@ -7,7 +7,7 @@ const usernameGenerator = (email: string) => email.split("@")[0];
 
 export const login = async (req: express.Request, res: express.Response) => {
   try {
-    const { email, password, remember } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -32,7 +32,7 @@ export const login = async (req: express.Request, res: express.Response) => {
 
     await user.save();
 
-    const maxAge = 24 * 60 * 60 * 1000;
+    const maxAge = rememberMe ? 1000 * 60 * 60 * 24 * 30 : 1000 * 60 * 60;
 
     res.cookie("sessionToken", user.authentication.sessionToken, {
       httpOnly: true,
