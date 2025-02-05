@@ -131,3 +131,14 @@ export const setAsPublic = async (postId: string) => {
 export const setAsFriendsOnly = async (postId: string) => {
   return Post.findByIdAndUpdate(postId, { privacy: "friends" }, { new: true });
 };
+
+export const searchPosts = async (
+  search: string,
+  page: number,
+  limit: number
+) => {
+  const skip = (page - 1) * limit;
+  return Post.find({ content: { $regex: new RegExp(search, "i") } })
+    .skip(skip)
+    .limit(limit);
+};

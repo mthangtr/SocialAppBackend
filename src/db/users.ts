@@ -37,3 +37,16 @@ export const createUser = async (values: Record<string, any>) =>
 export const deleteUser = async (id: string) => User.findByIdAndDelete(id);
 export const updateUser = async (id: string, values: Record<string, any>) =>
   User.findByIdAndUpdate(id, values);
+
+export const searchUser = async (
+  search: string,
+  page: number,
+  limit: number
+) => {
+  const skip = (page - 1) * limit;
+  return User.find({
+    username: { $regex: new RegExp(search, "i") },
+  })
+    .skip(skip)
+    .limit(limit);
+};
