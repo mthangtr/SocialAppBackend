@@ -21,7 +21,6 @@ const UserSchema = new mongoose.Schema(
 );
 
 export const User = mongoose.model("User", UserSchema);
-
 export const getUsers = async () => User.find();
 export const getUserByEmail = async (email: string) => {
   return User.findOne({ email }).select(

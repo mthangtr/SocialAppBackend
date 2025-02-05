@@ -18,7 +18,7 @@ export default (router: express.Router) => {
     upload.array("media", 12),
     createPostHandler
   );
-  router.get("/posts", isAuthenticated, getPostsHandler);
+  router.get("/posts/:userId", isAuthenticated, getPostsHandler);
   router.get("/posts/user/:userId", getPostsByUserIdHandler);
   router.delete(
     "/posts/:userId/:id",

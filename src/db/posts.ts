@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import express from "express";
 import bodyParser from "body-parser";
 import { Comment } from "./comments";
+import { User } from "./users";
 
 const app = express();
 
@@ -34,15 +35,35 @@ export const createPost = async (values: Record<string, any>) => {
   return Post.findById(post._id).populate("user").populate("reactions.user");
 };
 
-export const getPosts = async (page: number, limit: number) => {
+export const getPosts = async (userId: string, page: number, limit: number) => {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
   const skip = (page - 1) * limit;
-  return Post.find()
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  // Get the user's friends list
+  const user = await User.findById(userId).select("friends").exec();
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const friendIds = user.friends.map((friend) => friend.toString());
+
+  // Fetch posts based on privacy settings
+  return Post.find({
+    $or: [
+      { privacy: "public" },
+      { privacy: "friends", user: { $in: friendIds } },
+    ],
+    user: { $ne: userObjectId },
+  })
     .populate("user")
     .populate("reactions.user")
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit)
-    .exec();
+    .limit(limit);
 };
 
 export const getPostById = async (id: string) =>

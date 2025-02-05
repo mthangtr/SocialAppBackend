@@ -36,10 +36,11 @@ export async function createPostHandler(req: CustomRequest, res: Response) {
 
 export const getPostsHandler = async (req: Request, res: Response) => {
   try {
+    const userId = req.params.userId;
     const page = parseInt(req.query.page as string, 10) || 1;
     const limit = 10;
 
-    const posts = await getPosts(page, limit);
+    const posts = await getPosts(userId, page, limit);
     const updatedPosts = posts.map((post) => {
       post.media = post.media.map((filePath) => {
         if (
