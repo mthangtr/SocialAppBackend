@@ -138,7 +138,43 @@ export const searchPosts = async (
   limit: number
 ) => {
   const skip = (page - 1) * limit;
-  return Post.find({ content: { $regex: new RegExp(search, "i") } })
+
+  // Find posts that match the content first
+  const contentMatches = await Post.find({
+    content: { $regex: new RegExp(search, "i") },
+  })
+    .populate("user")
     .skip(skip)
     .limit(limit);
+
+  // If we haven't reached the limit, find posts that match the username
+  const remainingLimit = limit - contentMatches.length;
+  let usernameMatches = <any>[];
+
+  if (remainingLimit > 0) {
+    usernameMatches = await Post.find({
+      "user.username": { $regex: new RegExp(search, "i") },
+      content: { $not: { $regex: new RegExp(search, "i") } }, // Avoid duplicates
+    })
+      .populate("user")
+      .skip(skip)
+      .limit(remainingLimit);
+  }
+
+  return [...contentMatches, ...usernameMatches];
+};
+
+export const countSearchedPosts = async (search: string) => {
+  // Count posts that match content
+  const contentCount = await Post.countDocuments({
+    content: { $regex: new RegExp(search, "i") },
+  });
+
+  // Count posts that match username but do not match content
+  const usernameCount = await Post.countDocuments({
+    "user.username": { $regex: new RegExp(search, "i") },
+    content: { $not: { $regex: new RegExp(search, "i") } }, // Avoid double counting
+  });
+
+  return contentCount + usernameCount;
 };

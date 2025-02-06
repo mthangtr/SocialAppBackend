@@ -13,10 +13,15 @@ export const login = async (req: express.Request, res: express.Response) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
     const user = await getUserByEmail(email);
 
     if (!user) {
-      return res.status(404).json({ error: "Invalid gmail or passwords" });
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
     if (
@@ -95,6 +100,7 @@ export const checkSession = async (
 ) => {
   try {
     const { sessionToken } = req.body;
+    //const sessionToken = req.headers.authorization?.split("Bearer ")[1];
 
     const token =
       typeof sessionToken === "object" ? sessionToken.value : sessionToken;

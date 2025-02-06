@@ -50,3 +50,8 @@ export const searchUser = async (
     .skip(skip)
     .limit(limit);
 };
+export const countSearchedUsers = async (search: string) => {
+  return User.countDocuments({
+    username: { $regex: new RegExp(search, "i") },
+  });
+};
