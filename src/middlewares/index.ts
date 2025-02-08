@@ -13,7 +13,6 @@ export const isOwner = async (
   try {
     const sessionToken = req.cookies["sessionToken"];
     const userId = get(req, "params.userId");
-
     if (!sessionToken) {
       return res.status(401).send({ error: "Unauthorized" });
     }
@@ -64,7 +63,7 @@ export const isAuthenticated = async (
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "D:/Workspace/vscode/FeedsSocialApp/feeds-backend/sources");
+    cb(null, "D:/Workspace/vscode/FeedsSocialApp/feeds-backend/uploads/");
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = `${uuidv4()}${path.extname(file.originalname)}`;

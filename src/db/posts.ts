@@ -18,7 +18,7 @@ const ReactionSchema = new mongoose.Schema(
 
 const PostSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  content: { type: String, required: true },
+  content: { type: String, required: false, default: "" },
   media: [{ type: String }],
   reactions: [ReactionSchema],
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],
@@ -30,7 +30,18 @@ const PostSchema = new mongoose.Schema({
 export const Post = mongoose.model("Post", PostSchema);
 
 export const createPost = async (values: Record<string, any>) => {
-  const post = new Post(values);
+  const { content, media, user } = values;
+
+  if ((!content || content.trim() === "") && (!media || media.length === 0)) {
+    throw new Error("Post must have either content or media.");
+  }
+
+  const post = new Post({
+    user,
+    content: content?.trim() || "",
+    media: media || [],
+  });
+
   await post.save();
   return Post.findById(post._id).populate("user").populate("reactions.user");
 };
@@ -77,16 +88,54 @@ export const updatePost = async (id: string, values: Record<string, any>) => {
   await Post.findByIdAndUpdate(id, values);
 };
 
-export const getPostsByUserId = async (userId: string): Promise<any> => {
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
+export const getPostsByUserId = async (
+  profileOwnerId: string, // The user whose profile is being viewed
+  viewerId: string, // The logged-in user
+  page: number,
+  limit: number
+) => {
+  if (
+    !mongoose.Types.ObjectId.isValid(profileOwnerId) ||
+    !mongoose.Types.ObjectId.isValid(viewerId)
+  ) {
     throw new Error("Invalid user ID");
   }
 
-  const objectId = new mongoose.Types.ObjectId(userId);
-  return Post.find({ user: objectId })
+  const skip = (page - 1) * limit;
+  const profileOwnerObjectId = new mongoose.Types.ObjectId(profileOwnerId);
+
+  // Check if the viewer is the owner
+  const isOwner = profileOwnerId === viewerId;
+
+  // Fetch the profile owner’s user data to check their friends list
+  const profileOwner = await User.findById(profileOwnerId)
+    .select("friends")
+    .exec();
+  if (!profileOwner) {
+    throw new Error("User not found");
+  }
+
+  const isFriend = profileOwner.friends.some(
+    (friendId) => friendId.toString() === viewerId
+  );
+
+  // Define query conditions
+  let conditions: any = { user: profileOwnerObjectId };
+
+  if (!isOwner) {
+    conditions.$or = [{ privacy: "public" }];
+    if (isFriend) {
+      conditions.$or.push({ privacy: "friends" });
+    }
+  }
+
+  // Fetch filtered posts based on conditions
+  return Post.find(conditions)
     .populate("user")
     .populate("reactions.user")
-    .exec();
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
 };
 
 export const reactToPost = async (
@@ -177,4 +226,45 @@ export const countSearchedPosts = async (search: string) => {
   });
 
   return contentCount + usernameCount;
+};
+
+export const countPostsByUserId = async (
+  profileOwnerId: string,
+  viewerId: string
+) => {
+  if (
+    !mongoose.Types.ObjectId.isValid(profileOwnerId) ||
+    !mongoose.Types.ObjectId.isValid(viewerId)
+  ) {
+    throw new Error("Invalid user ID");
+  }
+
+  const profileOwnerObjectId = new mongoose.Types.ObjectId(profileOwnerId);
+
+  // Check if the viewer is the owner
+  const isOwner = profileOwnerId === viewerId;
+
+  // Fetch profile owner's user data to check friendship status
+  const profileOwner = await User.findById(profileOwnerId)
+    .select("friends")
+    .exec();
+  if (!profileOwner) {
+    throw new Error("User not found");
+  }
+
+  const isFriend = profileOwner.friends.some(
+    (friendId) => friendId.toString() === viewerId
+  );
+
+  // Define query conditions to count only the posts the viewer can see
+  let conditions: any = { user: profileOwnerObjectId };
+
+  if (!isOwner) {
+    conditions.$or = [{ privacy: "public" }];
+    if (isFriend) {
+      conditions.$or.push({ privacy: "friends" });
+    }
+  }
+
+  return Post.countDocuments(conditions);
 };

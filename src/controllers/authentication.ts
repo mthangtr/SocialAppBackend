@@ -37,7 +37,8 @@ export const login = async (req: express.Request, res: express.Response) => {
 
     await user.save();
 
-    const maxAge = rememberMe ? 1000 * 60 * 60 * 24 * 30 : 1000 * 60 * 60;
+    // if rememberMe is true, the cookie will expire in 30 days, else it will expire in 1 hour
+    const maxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 60 * 60 * 1000;
 
     res.cookie("sessionToken", user.authentication.sessionToken, {
       httpOnly: true,
@@ -45,6 +46,10 @@ export const login = async (req: express.Request, res: express.Response) => {
       sameSite: "strict",
       maxAge,
     });
+
+    if (!user.pfp.startsWith("http://") || !user.pfp.startsWith("https://")) {
+      user.pfp = `http://localhost:8080/images/${user.pfp}`;
+    }
 
     return res.status(200).json(user).end();
   } catch (error) {
