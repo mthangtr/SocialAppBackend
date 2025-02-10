@@ -9,6 +9,7 @@ import {
   unFriendHandler,
   updateProfileHandler,
   uploadAvatarHandler,
+  suggestFriendsHandler,
 } from "../controllers/users";
 import { isAuthenticated, upload } from "../middlewares";
 
@@ -45,5 +46,10 @@ export default (router: express.Router) => {
     "/users/:userId/avatar",
     upload.single("avatar"),
     uploadAvatarHandler
+  );
+  router.get(
+    "/users/:userId/suggest-friends",
+    isAuthenticated,
+    suggestFriendsHandler
   );
 };

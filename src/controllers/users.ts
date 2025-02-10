@@ -7,6 +7,7 @@ import {
   cancelSentFriendRequest,
   unFriend,
   updateProfile,
+  getSuggestedFriends,
 } from "../db/users";
 import path from "path";
 
@@ -164,5 +165,18 @@ export const uploadAvatarHandler = async (req: Request, res: Response) => {
     return res.status(200).json(updatedUser);
   } catch (error) {
     return res.status(500).json({ error: "Lỗi khi tải ảnh lên." });
+  }
+};
+
+export const suggestFriendsHandler = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const limit = parseInt(req.query.limit as string) || 5;
+
+    const suggestedFriends = await getSuggestedFriends(userId, limit);
+
+    return res.status(200).json(suggestedFriends);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 };

@@ -204,3 +204,42 @@ export const updateProfile = async (
     { new: true, runValidators: true }
   );
 };
+
+export const getSuggestedFriends = async (userId: string, limit: number) => {
+  const user = await User.findById(userId).populate("friends");
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const userFriends = user.friends.map((friend: any) => friend._id.toString());
+
+  // Tìm tất cả bạn của bạn bè nhưng không phải bạn hiện tại của user
+  const potentialFriends = await User.find({
+    _id: { $ne: userId, $nin: userFriends }, // Không lấy chính người dùng và những người đã là bạn
+    friends: { $in: userFriends }, // Chỉ lấy những người có ít nhất một bạn chung
+  }).populate("friends");
+
+  // Tính số lượng bạn chung
+  const suggestedList = potentialFriends.map((potentialFriend) => {
+    const commonFriends = potentialFriend.friends.filter((friend: any) =>
+      userFriends.includes(friend._id.toString())
+    );
+    return {
+      _id: potentialFriend._id,
+      username: potentialFriend.username,
+      pfp: potentialFriend.pfp,
+      bio: potentialFriend.bio,
+      commonFriendsCount: commonFriends.length,
+      commonFriends: commonFriends.map((friend: any) => ({
+        _id: friend._id,
+        username: friend.username,
+        pfp: friend.pfp,
+      })),
+    };
+  });
+
+  // Sắp xếp theo số lượng bạn chung giảm dần
+  suggestedList.sort((a, b) => b.commonFriendsCount - a.commonFriendsCount);
+
+  return suggestedList.slice(0, limit);
+};
