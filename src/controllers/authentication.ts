@@ -47,10 +47,6 @@ export const login = async (req: express.Request, res: express.Response) => {
       maxAge,
     });
 
-    if (!user.pfp.startsWith("http://") || !user.pfp.startsWith("https://")) {
-      user.pfp = `http://localhost:8080/images/${user.pfp}`;
-    }
-
     return res.status(200).json(user).end();
   } catch (error) {
     console.error("Error on login", error);

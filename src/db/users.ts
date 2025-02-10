@@ -25,13 +25,16 @@ const UserSchema = new mongoose.Schema(
 export const User = mongoose.model("User", UserSchema);
 export const getUsers = async () => User.find();
 export const getUserByEmail = async (email: string) => {
-  return User.findOne({ email }).select(
-    "+authentication.salt +authentication.password"
-  );
+  return User.findOne({ email })
+    .select("+authentication.salt +authentication.password")
+    .populate("friends")
+    .populate("friendRequests");
 };
 export const getUserByUsername = async (username: string) =>
   User.findOne({ username });
-export const getUserById = async (userId: string) => User.findById(userId);
+export const getUserById = async (userId: string) => {
+  return User.findById(userId).populate("friends").populate("friendRequests");
+};
 export const getUserBySessionToken = async (sessionToken: string) =>
   User.findOne({ "authentication.sessionToken": sessionToken });
 export const createUser = async (values: Record<string, any>) =>
@@ -88,27 +91,39 @@ export const acceptFriendRequest = async (
 ) => {
   const sender = await User.findById(senderId);
   const receiver = await User.findById(receiverId);
+
   if (!sender || !receiver) {
     throw new Error("User not found");
   }
-  if (!receiver.friendRequests.some((id) => id.toString() === senderId)) {
+
+  // Kiểm tra xem friend request có tồn tại không
+  if (!receiver.friendRequests.some((id) => id?.toString() === senderId)) {
     throw new Error("No friend request found");
   }
-  // Add the sender to the receiver’s friends list (if not already added)
+
+  // Thêm bạn bè nếu chưa có trong danh sách
   if (!receiver.friends.some((id) => id.toString() === senderId)) {
-    receiver.friends.push(new mongoose.Types.ObjectId(senderId));
+    receiver.friends.push(sender._id);
   }
-  // Add the receiver to the sender’s friends list
-  if (!sender.friends.some((id) => id.toString() === receiverId)) {
-    sender.friends.push(new mongoose.Types.ObjectId(receiverId));
+  if (!sender.friends.some((fr) => fr.toString() === receiverId)) {
+    sender.friends.push(receiver._id);
   }
-  // Remove the friend request
+
+  // Xóa request đã chấp nhận
   receiver.friendRequests = receiver.friendRequests.filter(
     (id) => id.toString() !== senderId
   );
+
   await receiver.save();
   await sender.save();
-  return { sender, receiver };
+
+  // Populate lại danh sách bạn bè với đầy đủ thông tin
+  const updatedReceiver = await User.findById(receiverId).populate({
+    path: "friends",
+    select: "_id username email pfp backgroundImg bio",
+  });
+
+  return { sender, receiver: updatedReceiver };
 };
 
 // Reject a friend request (simply removes the request from the receiver’s friendRequests)
@@ -149,35 +164,19 @@ export const cancelSentFriendRequest = async (
   return receiver;
 };
 
-// List incoming friend requests for a user (populated with user details)
-export const listFriendRequests = async (userId: string) => {
-  const user = await User.findById(userId).populate("friendRequests");
-  if (!user) {
-    throw new Error("User not found");
-  }
-  return user.friendRequests;
-};
+export const unFriend = async (
+  user: mongoose.Document & { friends: mongoose.Types.ObjectId[] },
+  friend: mongoose.Document & { friends: mongoose.Types.ObjectId[] }
+) => {
+  // Remove the friend from user's friends list
+  user.updateOne({ $pull: { friends: friend._id } }).exec();
 
-// Get the list of friends for a user (populated with user details)
-export const getFriends = async (userId: string) => {
-  const user = await User.findById(userId).populate("friends");
-  if (!user) {
-    throw new Error("User not found");
-  }
-  return user.friends;
-};
+  // Remove the user from friend's friends list
+  friend.updateOne({ $pull: { friends: user._id } }).exec();
 
-// Unfriend: Remove each user from the other’s friends array
-export const unFriend = async (userId: string, friendId: string) => {
-  const user = await User.findById(userId);
-  const friend = await User.findById(friendId);
-  if (!user || !friend) {
-    throw new Error("User not found");
-  }
-  user.friends = user.friends.filter((id) => id.toString() !== friendId);
-  friend.friends = friend.friends.filter((id) => id.toString() !== userId);
   await user.save();
   await friend.save();
+
   return { user, friend };
 };
 

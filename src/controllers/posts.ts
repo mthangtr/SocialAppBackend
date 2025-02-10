@@ -159,8 +159,8 @@ export const reactToPostHandler = async (req: Request, res: Response) => {
 
 export const setPrivacyHandler = async (req: Request, res: Response) => {
   try {
-    const { postId } = req.params;
-    const { privacy } = req.body;
+    const postId = req.params.id;
+    const privacy = req.body.privacy;
     switch (privacy) {
       case "public":
         await setAsPublic(postId);

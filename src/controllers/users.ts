@@ -5,8 +5,6 @@ import {
   acceptFriendRequest,
   rejectFriendRequest,
   cancelSentFriendRequest,
-  listFriendRequests,
-  getFriends,
   unFriend,
   updateProfile,
 } from "../db/users";
@@ -71,6 +69,7 @@ export const cancelSentFriendRequestHandler = async (
   res: Response
 ) => {
   const { senderId, receiverId } = req.body;
+
   try {
     const updatedReceiver = await cancelSentFriendRequest(senderId, receiverId);
     res.status(200).json(updatedReceiver);
@@ -79,25 +78,14 @@ export const cancelSentFriendRequestHandler = async (
   }
 };
 
-// Handler for listing all incoming friend requests for a user.
-export const listFriendRequestsHandler = async (
-  req: Request,
-  res: Response
-) => {
-  const { userId } = req.params;
-  try {
-    const friendRequests = await listFriendRequests(userId);
-    res.status(200).json(friendRequests);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
 // Handler for retrieving a user’s friends list.
 export const getFriendsHandler = async (req: Request, res: Response) => {
   const { userId } = req.params;
+  const limit = parseInt(req.query.limit as string);
   try {
-    const friends = await getFriends(userId);
+    const user = await getUserById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const friends = limit != 0 ? user.friends.slice(0, limit) : user.friends;
     res.status(200).json(friends);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -106,10 +94,16 @@ export const getFriendsHandler = async (req: Request, res: Response) => {
 
 // Handler for unfriending a user.
 export const unFriendHandler = async (req: Request, res: Response) => {
-  const { userId, friendId } = req.body;
+  const userId = req.params.userId;
+  const friendId = req.body.friendId;
   try {
-    const result = await unFriend(userId, friendId);
-    res.status(200).json(result);
+    const user = await getUserById(userId);
+    const friend = await getUserById(friendId);
+    if (!user || !friend)
+      return res.status(404).json({ error: "User not found" });
+    await unFriend(user, friend);
+    const updatedUser = await getUserById(userId);
+    return res.status(200).json({ user: updatedUser });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
